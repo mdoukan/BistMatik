@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BistMatik - Yapay Zeka Destekli Borsa Analiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+        }
+
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--secondary-color);
+            font-weight: 500;
+            margin: 0 1rem;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 4rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .stats-section {
+            background-color: white;
+            padding: 3rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 10px;
+            background-color: var(--light-bg);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+        }
+
+        .features-section {
+            padding: 3rem 0;
+        }
+
+        .feature-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .feature-description {
+            color: var(--secondary-color);
+            line-height: 1.6;
+        }
+
+        .cta-section {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .cta-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-button {
+            background-color: white;
+            color: var(--primary-color);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            color: var(--primary-color);
+        }
+
+        footer {
+            background-color: #343a40;
+            color: white;
+            padding: 3rem 0;
+        }
+
+        .footer-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-link {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        .hover-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hover-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+        
+        .card-subtitle {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .card-subtitle small {
+            font-size: 1rem;
+            font-weight: normal;
+        }
+
+        .pricing-card {
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+        }
+
+        .pricing-card.premium {
+            background: linear-gradient(135deg, #1a1a1a, #333333);
+            color: white;
+        }
+
+        .pricing-card.premium .card-title,
+        .pricing-card.premium .card-subtitle,
+        .pricing-card.premium .pricing-icon {
+            color: white;
+        }
+
+        .pricing-card.premium .pricing-icon {
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+        }
+
+        .pricing-card.premium .pricing-btn {
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #1a1a1a;
+            border: none;
+        }
+
+        .pricing-card.premium .pricing-btn:hover {
+            background: linear-gradient(135deg, #ffa500, #ffd700);
+        }
+
+        .pricing-card.premium .list-unstyled li {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .pricing-card.premium .pricing-badge {
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #1a1a1a;
+        }
+
+        .card-subtitle {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            position: relative;
+            display: inline-block;
+            margin: 1rem 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card-subtitle small {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--secondary-color);
+            margin-left: 0.5rem;
+        }
+
+        .pricing-card.premium .card-subtitle {
+            color: #ffd700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .pricing-card.premium .card-subtitle small {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+            border-bottom-left-radius: 15px;
+            font-weight: 500;
+        }
+
+        .pricing-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .pricing-btn {
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pricing-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .pricing-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .pricing-btn:hover::after {
+            transform: translateX(0);
+        }
+
+        .list-unstyled li {
+            position: relative;
+            padding-left: 10px;
+        }
+
+        .list-unstyled li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            background: transparent;
+            border-radius: 50%;
+        }
+
+        .pricing-card.professional {
+            background: linear-gradient(135deg, #1e3a5f, #2a4d7d);
+            color: white;
+        }
+
+        .pricing-card.professional .card-title,
+        .pricing-card.professional .card-subtitle,
+        .pricing-card.professional .pricing-icon {
+            color: white;
+        }
+
+        .pricing-card.professional .pricing-icon {
+            background: linear-gradient(135deg, #4a90e2, #357ab8);
+        }
+
+        .pricing-card.professional .pricing-btn {
+            background: linear-gradient(135deg, #4a90e2, #357ab8);
+            color: #ffffff;
+            border: none;
+        }
+
+        .pricing-card.professional .pricing-btn:hover {
+            background: linear-gradient(135deg, #357ab8, #4a90e2);
+        }
+
+        .pricing-card.professional .list-unstyled li {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .pricing-card.professional .pricing-badge {
+            background: linear-gradient(135deg, #4a90e2, #357ab8);
+            background: linear-gradient(135deg, #c0c0c0, #a9a9a9);
+            color: #333333;
+        }
+
+        .pricing-card.starter {
+            background: linear-gradient(135deg, #a8e6cf, #81c784);
+            color: #333333;
+        }
+
+        .pricing-card.starter .card-title,
+        .pricing-card.starter .card-subtitle,
+        .pricing-card.starter .pricing-icon {
+            color: #333333;
+        }
+
+        .pricing-card.starter .pricing-icon {
+            background: linear-gradient(135deg, #66bb6a, #4caf50);
+        }
+
+        .pricing-card.starter .pricing-btn {
+            background: linear-gradient(135deg, #66bb6a, #4caf50);
+            color: #ffffff;
+            border: none;
+        }
+
+        .pricing-card.starter .pricing-btn:hover {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+        }
+
+        .pricing-card.starter .list-unstyled li {
+            color: rgba(51,51,51,0.9);
+        }
+
+        .pricing-card.starter .pricing-badge {
+            background: linear-gradient(135deg, #66bb6a, #4caf50);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">BistMatik</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/stock_analysis">Hisse Analizi</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/goals">Hedefler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Özellikler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#pricing">Fiyatlandırma</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">Hakkımızda</a>
+                    </li>
+                    {% if user_name %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i> {{ user_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/accounts_settings"><i class="fas fa-cog me-2"></i>Hesap Ayarları</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Giriş Yap</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">Kayıt Ol</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="hero-title">BistMatik ile Yatırımlarınızı Akıllandırın</h1>
+                    <p class="hero-subtitle">
+                        Yapay zeka destekli algoritmalarımız ve gerçek zamanlı analizler ile
+                        Borsa İstanbul'daki yatırımlarınız için doğru kararlar alın.
+                    </p>
+                    <a href="/stock_analysis" class="btn btn-light btn-lg">
+                        Analiz Sayfasına Git
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-number">30+</div>
+                        <div class="stat-label">BIST Şirketi</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-number">%95</div>
+                        <div class="stat-label">Doğruluk Oranı</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-number">7/24</div>
+                        <div class="stat-label">Güncel Veri</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <h2 class="text-center mb-5">Öne Çıkan Özellikler</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-chart-line feature-icon"></i>
+                        <h3 class="feature-title">Teknik Analiz</h3>
+                        <p class="feature-description">
+                            RSI, MACD, Hareketli Ortalamalar ve daha fazlası ile 
+                            detaylı teknik analiz yapın.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-brain feature-icon"></i>
+                        <h3 class="feature-title">Yapay Zeka Tahminleri</h3>
+                        <p class="feature-description">
+                            Gelişmiş makine öğrenmesi modelleri ile 
+                            fiyat tahminleri alın.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-clock feature-icon"></i>
+                        <h3 class="feature-title">Gerçek Zamanlı Veriler</h3>
+                        <p class="feature-description">
+                            Güncel hisse senedi fiyatları ve göstergeleri 
+                            anlık olarak takip edin.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <hr class="my-5" style="border-top: 3px solid #bbb;">
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">Fiyatlandırma Paketlerimiz</h2>
+            <div class="row">
+                <!-- Paket 1 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card pricing-card starter h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="pricing-badge">En Popüler</div>
+                            <div class="pricing-icon mb-3">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <h4 class="card-title text-primary mb-3">Başlangıç</h4>
+                            <h2 class="card-subtitle mb-4">20₺<small class="text-muted">/hafta</small></h2>
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Hisse senedi analizi</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Teknik gösterge izleme</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Temel fiyat tahminleri</li>
+                            </ul>
+                            {% if user_name %}
+                            <a href="/purchase?package=starter" class="btn btn-primary w-100 pricing-btn">Satın Al</a>
+                            {% else %}
+                            <a href="/login" class="btn btn-primary w-100 pricing-btn">Giriş Yap</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Paket 2 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card pricing-card professional h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="pricing-badge">En Çok Tercih Edilen</div>
+                            <div class="pricing-icon mb-3">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Profesyonel</h4>
+                            <h2 class="card-subtitle mb-4">50₺<small>/hafta</small></h2>
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="fas fa-check-circle text-light me-2"></i>Hisse analizi</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-light me-2"></i>Hedef bazlı portföy</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-light me-2"></i>Yapay zeka tahminleri</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-light me-2"></i>Altın/Gümüş analizi</li>
+                            </ul>
+                            {% if user_name %}
+                            <a href="/purchase?package=professional" class="btn w-100 pricing-btn">Satın Al</a>
+                            {% else %}
+                            <a href="/login" class="btn w-100 pricing-btn">Giriş Yap</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Paket 3 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card pricing-card premium h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="pricing-badge">Premium</div>
+                            <div class="pricing-icon mb-3">
+                                <i class="fas fa-gem"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Premium</h4>
+                            <h2 class="card-subtitle mb-4">100₺<small>/ay</small></h2>
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="fas fa-check-circle text-warning me-2"></i>Tüm özellikler</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-warning me-2"></i>Gelişmiş yapay zeka tahminleri</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-warning me-2"></i>Öncelikli destek</li>
+                            </ul>
+                            {% if user_name %}
+                            <a href="/purchase?package=premium" class="btn w-100 pricing-btn">Satın Al</a>
+                            {% else %}
+                            <a href="/login" class="btn w-100 pricing-btn">Giriş Yap</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h2 class="cta-title">Profesyonel Analizler İçin Hemen Başlayın</h2>
+            <p class="mb-4">Yapay zeka destekli hisse senedi analizleri ve portföy yönetimi ile yatırımlarınızı güçlendirin.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/register" class="cta-button">Hemen Üye Ol</a>
+                <a href="#pricing" class="cta-button" style="background-color: transparent; color: white; border: 2px solid white;">Paketleri İncele</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h3 class="footer-title">BistMatik</h3>
+                    <p>Yapay zeka destekli hisse senedi analiz platformu.</p>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="footer-title">Hızlı Bağlantılar</h3>
+                    <a href="/stock_analysis" class="footer-link">Hisse Analizi</a>
+                    <a href="/goals" class="footer-link">Hedefler</a>
+                    <a href="#features" class="footer-link">Özellikler</a>
+                    <a href="#pricing" class="footer-link">Fiyatlandırma</a>
+                    <a href="#about" class="footer-link">Hakkımızda</a>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="footer-title">İletişim</h3>
+                    <a href="mailto:info@bistmatik.com" class="footer-link">info@bistmatik.com</a>
+                    <a href="tel:+902121234567" class="footer-link">+90 212 123 45 67</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

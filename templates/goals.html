@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hedef Bazlı Portföy - BistMatik</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .gradient-custom {
+            background: linear-gradient(to right, #36D1DC, #5B86E5);
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .btn-primary {
+            background: linear-gradient(to right, #36D1DC, #5B86E5);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+        }
+        .portfolio-card {
+            transition: transform 0.3s;
+        }
+        .portfolio-card:hover {
+            transform: translateY(-5px);
+        }
+        .stock-item {
+            border-left: 4px solid #5B86E5;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        #loadingSpinner {
+            display: none;
+        }
+        
+        /* Pricing Popup Styles */
+        .pricing-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .pricing-popup-content {
+            background-color: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .pricing-popup-header {
+            padding: 20px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .pricing-popup-header h3 {
+            margin: 0;
+            font-weight: bold;
+        }
+        
+        .close-popup-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .pricing-popup-body {
+            padding: 30px;
+        }
+        
+        .popup-packages {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .popup-package {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            width: 30%;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .popup-package:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .popup-package.highlight {
+            border-color: #007bff;
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .popup-package h4 {
+            font-weight: bold;
+            color: #343a40;
+        }
+        
+        .popup-package .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        
+        .popup-package .price span {
+            font-size: 14px;
+            font-weight: normal;
+            color: #6c757d;
+        }
+        
+        .popup-package .badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #ffc107;
+            color: #212529;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .pricing-popup-footer {
+            padding: 20px;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .pricing-btn {
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .pricing-btn.primary-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .pricing-btn.secondary-btn {
+            background-color: transparent;
+            color: #007bff;
+            border: 2px solid #007bff;
+        }
+        
+        .pricing-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .popup-packages {
+                flex-direction: column;
+            }
+            
+            .popup-package {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">BistMatik</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/stock_analysis">Hisse Analizi</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/goals">Hedefler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/#features">Özellikler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/#pricing">Fiyatlandırma</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/#about">Hakkımızda</a>
+                    </li>
+                    {% if user_name %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i> {{ user_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/accounts_settings"><i class="fas fa-cog me-2"></i>Hesap Ayarları</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Giriş Yap</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">Kayıt Ol</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body p-5">
+                        <h2 class="text-center mb-5">BistMatik Portföy Planlaması</h2>
+                        
+                        <!-- Giriş Formu -->
+                        <form id="portfolioForm" class="mb-4">
+                            <div class="mb-4">
+                                <label for="capital" class="form-label">Başlangıç Sermayeniz (TL)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-wallet"></i></span>
+                                    <input type="number" class="form-control" id="capital" required min="1000">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="target" class="form-label">Hedef Tutarınız (TL)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-bullseye"></i></span>
+                                    <input type="number" class="form-control" id="target" required min="1000">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="riskLevel" class="form-label">Risk Toleransınız</label>
+                                <select class="form-select" id="riskLevel" required>
+                                    <option value="low">Düşük Risk</option>
+                                    <option value="medium" selected>Orta Risk</option>
+                                    <option value="high">Yüksek Risk</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">
+                                <span id="submitText">Portföy Oluştur</span>
+                                <div id="loadingSpinner" class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </button>
+                        </form>
+
+                        <!-- Sonuç Alanı -->
+                        <div id="resultSection" style="display: none;">
+                            <hr class="my-4">
+                            <div class="portfolio-card card mb-4">
+                                <div class="card-body">
+                                    <h4 class="card-title">Önerilen Portföy</h4>
+                                    <div class="estimated-time mb-3">
+                                        <i class="fas fa-clock"></i>
+                                        <span id="estimatedTime"></span>
+                                    </div>
+                                    <div id="portfolioStocks"></div>
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <button class="btn btn-outline-primary" onclick="window.print()">
+                                    <i class="fas fa-print me-2"></i>Portföyü Yazdır
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Giriş yapmamış kullanıcılar için sorgu hakkı yönetimi
+        const QUERY_LIMIT_GOALS = 3; // Hedefler sayfası için sorgu limiti
+        
+        function checkQueryLimit() {
+            // Kullanıcı giriş yapmışsa limiti kontrol etmeye gerek yok
+            {% if user_name %}
+                return true;
+            {% else %}
+                // LocalStorage'dan sorgu sayısını al
+                let queryCount = localStorage.getItem('goalsQueryCount');
+                
+                // İlk kez kullanıyorsa başlat
+                if (!queryCount) {
+                    queryCount = 0;
+                } else {
+                    queryCount = parseInt(queryCount);
+                }
+                
+                // Limit kontrolü
+                if (queryCount >= QUERY_LIMIT_GOALS) {
+                    showPricingPopup();
+                    return false;
+                }
+                
+                // Sorgu sayısını güncelle
+                localStorage.setItem('goalsQueryCount', queryCount + 1);
+                return true;
+            {% endif %}
+        }
+        
+        // Fiyatlandırma pop-up'ını göster
+        function showPricingPopup() {
+            // Varsa önceki pop-up'ı kaldır
+            const existingPopup = document.getElementById('pricingPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+            
+            // Pop-up oluştur
+            const popup = document.createElement('div');
+            popup.id = 'pricingPopup';
+            popup.className = 'pricing-popup';
+            popup.innerHTML = `
+                <div class="pricing-popup-content">
+                    <div class="pricing-popup-header">
+                        <h3>BistMatik Üyelik Planları</h3>
+                        <button class="close-popup-btn">&times;</button>
+                    </div>
+                    <div class="pricing-popup-body">
+                        <p>Ücretsiz kullanım limitiniz doldu. Daha fazla portföy analizi için lütfen premium paketlerimizden birini seçin.</p>
+                        <div class="popup-packages">
+                            <div class="popup-package">
+                                <h4>Başlangıç</h4>
+                                <p class="price">20 TL<span>/hafta</span></p>
+                                <p>Hisse senedi analizi ve temel tahminler</p>
+                            </div>
+                            <div class="popup-package highlight">
+                                <h4>Profesyonel</h4>
+                                <p class="price">50 TL<span>/hafta</span></p>
+                                <p>Hisse analizi, hedefler ve altın/gümüş analizi</p>
+                                <span class="badge">En Popüler</span>
+                            </div>
+                            <div class="popup-package">
+                                <h4>Premium</h4>
+                                <p class="price">100 TL<span>/ay</span></p>
+                                <p>Tüm özellikler ve öncelikli destek</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pricing-popup-footer">
+                        <a href="/register" class="pricing-btn primary-btn">Hemen Üye Ol</a>
+                        <a href="/#pricing" class="pricing-btn secondary-btn">Paketleri İncele</a>
+                    </div>
+                </div>
+            `;
+            
+            // Pop-up'ı sayfaya ekle
+            document.body.appendChild(popup);
+            
+            // Kapatma düğmesi işlevselliği
+            popup.querySelector('.close-popup-btn').addEventListener('click', () => {
+                popup.remove();
+            });
+            
+            // Sayfa dışı tıklamada kapatma
+            popup.addEventListener('click', (e) => {
+                if (e.target === popup) {
+                    popup.remove();
+                }
+            });
+        }
+        
+        document.getElementById('portfolioForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Sorgu limitini kontrol et
+            if (!checkQueryLimit()) {
+                return;
+            }
+            
+            const capital = document.getElementById('capital').value;
+            const target = document.getElementById('target').value;
+            const riskLevel = document.getElementById('riskLevel').value;
+
+            // Form doğrulama
+            if (parseInt(target) <= parseInt(capital)) {
+                alert('Hedef tutar, başlangıç sermayesinden büyük olmalıdır.');
+                return;
+            }
+
+            // Loading durumunu göster
+            document.getElementById('submitText').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+
+            try {
+                const response = await fetch('/generate_portfolio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        capital: capital,
+                        target: target,
+                        riskLevel: riskLevel
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayPortfolio(data);
+                } else {
+                    alert('Portföy oluşturulurken bir hata oluştu: ' + data.error);
+                }
+            } catch (error) {
+                alert('Bir hata oluştu: ' + error.message);
+            } finally {
+                // Loading durumunu gizle
+                document.getElementById('submitText').style.display = 'block';
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+        });
+
+        function displayPortfolio(data) {
+            const resultSection = document.getElementById('resultSection');
+            const estimatedTime = document.getElementById('estimatedTime');
+            const portfolioStocks = document.getElementById('portfolioStocks');
+
+            // Tahmini süreyi göster
+            estimatedTime.textContent = `Tahmini Hedef Süresi: ${data.estimatedMonths} ay`;
+
+            // Hisse senetlerini listele
+            portfolioStocks.innerHTML = '';
+            data.portfolio.forEach(stock => {
+                const stockDiv = document.createElement('div');
+                stockDiv.className = 'stock-item';
+                stockDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">${stock.name} (${stock.code})</h5>
+                            <p class="mb-0">Önerilen Yatırım: ${stock.amount.toLocaleString('tr-TR')} TL (${stock.percentage}%)</p>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-success">${stock.expectedReturn}% beklenen getiri</div>
+                            <div class="text-muted">Risk: ${stock.risk}</div>
+                        </div>
+                    </div>
+                `;
+                portfolioStocks.appendChild(stockDiv);
+            });
+
+            resultSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+
