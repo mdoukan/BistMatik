@@ -75,11 +75,15 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/goals">Hedefler</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/portfolio">Portföyüm</a>
+                    </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle active" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user-circle me-1"></i> {{ user_name }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/portfolio"><i class="fas fa-chart-line me-2"></i>Portföyüm</a></li>
                             <li><a class="dropdown-item" href="/accounts_settings"><i class="fas fa-cog me-2"></i>Hesap Ayarları</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
@@ -104,10 +108,8 @@
                         <div class="time-remaining mb-3">
                             Kalan Süre: <span id="remainingTime">1 gün</span>
                         </div>
-                        <ul class="package-features">
-                            <li>Günlük 5 hisse analizi</li>
-                            <li>Temel analiz özellikleri</li>
-                            <li>E-posta bildirimleri</li>
+                        <ul class="package-features" id="packageFeatures">
+                            <!-- JavaScript ile dinamik olarak doldurulacak -->
                         </ul>
                         <button class="cancel-button" id="cancelSubscription">Paketi İptal Et</button>
                     </div>
@@ -149,27 +151,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            fetch('/api/subscription')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('currentPackage').textContent = data.currentPackage.name;
-                    document.getElementById('remainingTime').textContent = data.currentPackage.remainingTime;
-                })
-                .catch(error => console.error('Error fetching subscription data:', error));
+            fetchSubscriptionData();
         });
 
-        // Paket süresi kontrolü
-        function checkSubscriptionExpiry(endDate) {
-            const end = new Date(endDate);
-            const now = new Date();
-            
-            if (now > end) {
-                // Süre dolduğunda otomatik iptal
-                cancelSubscription();
-            }
-        }
-
-        // Paket iptal işlemi
         async function cancelSubscription() {
             try {
                 const response = await fetch('/api/subscription/cancel', {
@@ -181,7 +165,7 @@
                 
                 if (response.ok) {
                     alert('Paketiniz başarıyla iptal edildi.');
-                    fetchSubscriptionData(); // Bilgileri güncelle
+                    fetchSubscriptionData();
                 } else {
                     alert('Paket iptal edilirken bir hata oluştu.');
                 }
@@ -190,12 +174,59 @@
             }
         }
 
-        // İptal butonuna tıklama olayı
-        document.getElementById('cancelSubscription').addEventListener('click', () => {
-            if (confirm('Paketinizi iptal etmek istediğinizden emin misiniz?')) {
-                cancelSubscription();
-            }
-        });
+        function fetchSubscriptionData() {
+            fetch('/api/subscription')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('currentPackage').textContent = data.currentPackage.name;
+                    document.getElementById('remainingTime').textContent = data.currentPackage.remainingTime;
+                    
+                    // Paket özelliklerini güncelle
+                    const featuresEl = document.getElementById('packageFeatures');
+                    featuresEl.innerHTML = '';
+                    data.currentPackage.features.forEach(feature => {
+                        const li = document.createElement('li');
+                        li.textContent = feature;
+                        featuresEl.appendChild(li);
+                    });
+                    
+                    // Paket geçmişini güncelle
+                    const historyTable = document.getElementById('packageHistory');
+                    historyTable.innerHTML = data.history.map(pkg => `
+                        <tr>
+                            <td>${pkg.name}</td>
+                            <td>${pkg.startDate}</td>
+                            <td>${pkg.endDate}</td>
+                            <td>${pkg.status}</td>
+                        </tr>
+                    `).join('');
+                    
+                    // Buton durumunu güncelle
+                    const cancelButton = document.getElementById('cancelSubscription');
+                    if (data.currentPackage.remainingTime === '0 gün') {
+                        // Süresi biten paket ise "Abone Ol" olarak değiştir
+                        cancelButton.textContent = 'Abone Ol';
+                        cancelButton.classList.remove('cancel-button');
+                        cancelButton.classList.add('btn', 'btn-primary');
+                        // Tıklama olayını güncelle
+                        cancelButton.onclick = function() {
+                            window.location.href = '/'; // Ana sayfaya yönlendir (abonelik planları)
+                        };
+                    } else {
+                        // Aktif abonelik varsa "Paketi İptal Et" olarak kalsın
+                        cancelButton.textContent = 'Paketi İptal Et';
+                        cancelButton.classList.add('cancel-button');
+                        cancelButton.classList.remove('btn', 'btn-primary');
+                        // Tıklama olayını güncelle
+                        cancelButton.onclick = function() {
+                            if (confirm('Paketinizi iptal etmek istediğinizden emin misiniz?')) {
+                                cancelSubscription();
+                            }
+                        };
+                    }
+                })
+                .catch(error => console.error('Error fetching subscription data:', error));
+        }
     </script>
 </body>
 </html>

@@ -37,12 +37,6 @@ db = SQLAlchemy(app)
 
 # Paket tipleri
 PACKAGE_TYPES = {
-    'free': {
-        'name': 'Ücretsiz Paket',
-        'price': 0,
-        'duration_days': 30,
-        'features': ['Günlük 5 hisse analizi', 'Temel analiz özellikleri', 'E-posta bildirimleri']
-    },
     'starter': {
         'name': 'Başlangıç',
         'price': 20,
@@ -63,6 +57,13 @@ PACKAGE_TYPES = {
     }
 }
 
+# Portföy Performansı modeli
+class PortfolioPerformance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    value = db.Column(db.Float, nullable=False)
+
 # Kullanıcı modeli
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -71,6 +72,7 @@ class User(db.Model):
     name = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     subscriptions = db.relationship('Subscription', backref='user', lazy=True)
+    portfolios = db.relationship('Portfolio', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -95,7 +97,49 @@ class Subscription(db.Model):
         return max(0, remaining)
 
     def get_package_info(self):
-        return PACKAGE_TYPES.get(self.package_type, PACKAGE_TYPES['free'])
+        return PACKAGE_TYPES.get(self.package_type, PACKAGE_TYPES['starter'])
+
+# Portföy modeli
+class Portfolio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False, default="Ana Portföy")
+    capital = db.Column(db.Float, nullable=False)  # Başlangıç sermayesi
+    target = db.Column(db.Float, nullable=False)  # Hedef tutar
+    current_value = db.Column(db.Float, nullable=False, default=0)  # Güncel değer
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_update = db.Column(db.DateTime, default=datetime.utcnow)
+    stocks = db.relationship('PortfolioStock', backref='portfolio', lazy=True, cascade="all, delete-orphan")
+    
+    def calculate_progress(self):
+        if not self.target:
+            return 0
+        return min(100, (self.current_value / self.target) * 100)
+    
+    def calculate_profit_loss(self):
+        return self.current_value - self.capital
+
+# Portföy Stok modeli
+class PortfolioStock(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=False)
+    code = db.Column(db.String(10), nullable=False)  # Hisse kodu (örn: THYAO)
+    name = db.Column(db.String(100), nullable=False)  # Hisse adı
+    amount = db.Column(db.Float, nullable=False)  # Yatırım miktarı (TL)
+    quantity = db.Column(db.Float, nullable=False, default=0)  # Lot miktarı
+    buy_price = db.Column(db.Float, nullable=False, default=0)  # Alış fiyatı
+    current_price = db.Column(db.Float, nullable=False, default=0)  # Güncel fiyat
+    last_update = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def calculate_return(self):
+        # Yüzde getiri hesapla
+        if not self.buy_price or self.buy_price == 0:
+            return 0
+        return ((self.current_price - self.buy_price) / self.buy_price) * 100
+    
+    def calculate_value(self):
+        # Güncel değer hesapla
+        return self.quantity * self.current_price
 
 # Veritabanını oluştur
 with app.app_context():
@@ -1160,9 +1204,9 @@ def get_subscription():
     if not current_subscription:
         return jsonify({
             'currentPackage': {
-                'name': 'Ücretsiz Paket',
-                'remainingTime': '30 gün',
-                'features': PACKAGE_TYPES['free']['features']
+                'name': 'Başlangıç',
+                'remainingTime': '0 gün',
+                'features': PACKAGE_TYPES['starter']['features']
             },
             'history': []
         })
@@ -1176,9 +1220,9 @@ def get_subscription():
         db.session.commit()
         return jsonify({
             'currentPackage': {
-                'name': 'Ücretsiz Paket',
-                'remainingTime': '30 gün',
-                'features': PACKAGE_TYPES['free']['features']
+                'name': 'Başlangıç',
+                'remainingTime': '0 gün',
+                'features': PACKAGE_TYPES['starter']['features']
             },
             'history': get_subscription_history(user.id)
         })
@@ -1263,6 +1307,35 @@ def update_subscription_days():
                 subscription.is_active = False
         db.session.commit()
 
+# Portföy performans verilerini günlük olarak güncelleme
+@scheduler.scheduled_job('cron', hour=18, minute=0) # Her gün saat 18:00'de çalış
+def update_portfolio_daily():
+    with app.app_context():
+        try:
+            print("Günlük portföy güncellemesi başlatılıyor...")
+            portfolios = Portfolio.query.all()
+            for portfolio in portfolios:
+                # Portföy hisselerini güncelle
+                update_portfolio_stocks(portfolio)
+                
+                # Toplam değeri hesapla
+                total_value = sum(stock.calculate_value() for stock in portfolio.stocks)
+                
+                # Portföy değerini güncelle
+                portfolio.current_value = total_value
+                portfolio.last_update = datetime.utcnow()
+                
+                # Günlük performans kaydı oluştur
+                create_portfolio_performance_record(portfolio.id, total_value)
+                
+                print(f"Portföy #{portfolio.id} güncellendi, güncel değer: {total_value:.2f} TL")
+            
+            db.session.commit()
+            print("Günlük portföy güncellemesi tamamlandı.")
+        except Exception as e:
+            print(f"Portföy güncellemesi sırasında hata oluştu: {str(e)}")
+            db.session.rollback()
+
 scheduler.start()
 
 # Satın alma işlemini gerçekleştiren API endpoint'i
@@ -1315,6 +1388,289 @@ def purchase_package():
             'end_date': new_subscription.end_date.strftime('%Y-%m-%d')
         }
     })
+
+# Portfolyo sayfası
+@app.route('/portfolio')
+@login_required
+def portfolio():
+    return render_template('portfolio.html', user_name=session.get('user_name'))
+
+# Portfolyo veri API'si
+@app.route('/api/portfolio')
+@login_required
+def get_portfolio():
+    user = User.query.get(session['user_id'])
+    portfolio = Portfolio.query.filter_by(user_id=user.id).first()
+    
+    if not portfolio:
+        return jsonify({
+            'hasPortfolio': False,
+            'message': 'Henüz portfolyo oluşturulmamış'
+        })
+    
+    # Portföy hisselerini güncelle
+    update_portfolio_stocks(portfolio)
+    
+    # Günlük getiriyi hesapla
+    daily_return = calculate_daily_return(portfolio)
+    
+    # Portföy geçmiş performansını al
+    performance_history = get_portfolio_performance_history(portfolio.id)
+    
+    stocks_data = []
+    total_value = 0
+    
+    for stock in portfolio.stocks:
+        current_value = stock.calculate_value()
+        total_value += current_value
+        
+        stock_data = {
+            'code': stock.code,
+            'name': stock.name,
+            'amount': stock.amount,
+            'quantity': stock.quantity,
+            'buyPrice': stock.buy_price,
+            'lastPrice': stock.current_price,
+            'value': current_value,
+            'return': round(stock.calculate_return(), 2)
+        }
+        stocks_data.append(stock_data)
+    
+    # Hisseleri için yüzde değerleri hesapla
+    for stock in stocks_data:
+        if total_value > 0:
+            stock['percentage'] = round((stock['value'] / total_value) * 100, 1)
+        else:
+            stock['percentage'] = 0
+    
+    # Güncel portföy değerini güncelle
+    portfolio.current_value = total_value
+    portfolio.last_update = datetime.utcnow()
+    db.session.commit()
+    
+    response_data = {
+        'hasPortfolio': True,
+        'id': portfolio.id,
+        'name': portfolio.name,
+        'capital': portfolio.capital,
+        'target': portfolio.target,
+        'currentValue': total_value,
+        'initialValue': portfolio.capital,
+        'progress': round(portfolio.calculate_progress(), 1),
+        'dailyReturn': round(daily_return, 2),
+        'totalReturn': round(portfolio.calculate_profit_loss(), 2),
+        'lastUpdate': portfolio.last_update.strftime('%d.%m.%Y %H:%M'),
+        'stocks': stocks_data,
+        'performanceHistory': performance_history
+    }
+    
+    return jsonify(response_data)
+
+# Portföye kaydetme API'si
+@app.route('/api/portfolio/save', methods=['POST'])
+@login_required
+def save_portfolio():
+    try:
+        data = request.get_json()
+        
+        user_id = session['user_id']
+        capital = float(data['capital'])
+        target = float(data['target'])
+        portfolio_stocks = data['portfolio']
+        
+        # Mevcut portföyü kontrol et
+        existing_portfolio = Portfolio.query.filter_by(user_id=user_id).first()
+        
+        if existing_portfolio:
+            # Mevcut portföyü güncelle
+            existing_portfolio.capital = capital
+            existing_portfolio.target = target
+            existing_portfolio.last_update = datetime.utcnow()
+            
+            # Mevcut hisseleri sil
+            for stock in existing_portfolio.stocks:
+                db.session.delete(stock)
+            
+            portfolio = existing_portfolio
+        else:
+            # Yeni portföy oluştur
+            portfolio = Portfolio(
+                user_id=user_id,
+                name="Ana Portföy",
+                capital=capital,
+                target=target
+            )
+            db.session.add(portfolio)
+            db.session.flush()  # ID'yi almak için flush
+        
+        # Son fiyatları al
+        stock_prices = {}
+        for stock in portfolio_stocks:
+            code = stock['code']
+            if code not in stock_prices:
+                ticker = f"{code}.IS"
+                try:
+                    stock_data = yf.download(ticker, period="1d", progress=False)
+                    if not stock_data.empty and 'Close' in stock_data and not pd.isna(stock_data['Close'].iloc[-1]):
+                        stock_prices[code] = stock_data['Close'].iloc[-1]
+                    else:
+                        stock_prices[code] = 0
+                except Exception as e:
+                    print(f"Hisse verisi alınırken hata: {str(e)}")
+                    stock_prices[code] = 0
+        
+        # Hisseleri ekle ve güncel değerleri hesapla
+        portfolio_value = 0
+        try:
+            # Mevcut hisse senetlerini sil
+            PortfolioStock.query.filter_by(portfolio_id=portfolio.id).delete()
+            
+            for stock in portfolio_stocks:
+                price = stock_prices.get(stock['code'], 0)
+                amount = float(stock['amount'])
+                
+                # Lot miktarını hesapla
+                quantity = 0
+                if price > 0:
+                    quantity = amount / price
+                
+                portfolio_stock = PortfolioStock(
+                    portfolio_id=portfolio.id,
+                    code=stock['code'],
+                    name=stock['name'],
+                    amount=amount,
+                    quantity=quantity,
+                    buy_price=price,
+                    current_price=price
+                )
+                db.session.add(portfolio_stock)
+                
+                # Toplam değeri güncelle
+                if price and amount:  # Ensure both price and amount are valid
+                    portfolio_value += price * quantity
+        except Exception as e:
+            print(f"Portföy kaydedilirken hata: {str(e)}")
+        
+        # Portföy değerini güncelle
+        portfolio.current_value = portfolio_value
+        
+        # İlk performans kaydını oluştur
+        create_portfolio_performance_record(portfolio.id, portfolio_value)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Portföy başarıyla kaydedildi',
+            'portfolio_id': portfolio.id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Portföy kaydedilirken hata: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Portföy stok fiyatlarını güncelle
+def update_portfolio_stocks(portfolio):
+    stock_codes = [stock.code for stock in portfolio.stocks]
+    
+    if not stock_codes:
+        return
+    
+    # Fiyatları tek seferde almak için hisseleri grupla
+    stock_tickers = [f"{code}.IS" for code in stock_codes]
+    
+    try:
+        # Hisse fiyatlarını al
+        stock_data = yf.download(stock_tickers, period="1d", progress=False)
+        
+        if stock_data.empty:
+            return
+        
+        # DataFrame yapısına göre işlem yap
+        if isinstance(stock_data.columns, pd.MultiIndex):
+            # Birden fazla hisse durumu
+            if 'Close' in stock_data:
+                closing_prices = stock_data['Close']
+                
+                for stock in portfolio.stocks:
+                    ticker = f"{stock.code}.IS"
+                    # Series içinde ticker'ın varlığını kontrol et
+                    if ticker in closing_prices.columns:
+                        if not closing_prices[ticker].empty and not pd.isna(closing_prices[ticker].iloc[-1]):
+                            stock.current_price = closing_prices[ticker].iloc[-1]
+                            stock.last_update = datetime.utcnow()
+        else:
+            # Tek hisse durumu
+            if len(portfolio.stocks) > 0 and 'Close' in stock_data and not stock_data['Close'].empty:
+                stock = portfolio.stocks[0]
+                if not pd.isna(stock_data['Close'].iloc[-1]):
+                    stock.current_price = stock_data['Close'].iloc[-1]
+                    stock.last_update = datetime.utcnow()
+            
+        db.session.commit()
+    
+    except Exception as e:
+        print(f"Hisse fiyatları güncellenirken hata: {str(e)}")
+        db.session.rollback()
+
+# Günlük getiriyi hesapla
+def calculate_daily_return(portfolio):
+    # Bir gün önceki portföy değerini al
+    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday_record = PortfolioPerformance.query.filter(
+        PortfolioPerformance.portfolio_id == portfolio.id,
+        PortfolioPerformance.date <= yesterday
+    ).order_by(PortfolioPerformance.date.desc()).first()
+    
+    if not yesterday_record or yesterday_record.value == 0:
+        return 0
+    
+    # Günlük getiriyi hesapla
+    daily_return = ((portfolio.current_value - yesterday_record.value) / yesterday_record.value) * 100
+    return daily_return
+
+# Portföy performans kaydı oluştur
+def create_portfolio_performance_record(portfolio_id, value):
+    # Günün kaydı var mı kontrol et
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    existing_record = PortfolioPerformance.query.filter(
+        PortfolioPerformance.portfolio_id == portfolio_id,
+        PortfolioPerformance.date >= today
+    ).first()
+    
+    if existing_record:
+        # Mevcut kaydı güncelle
+        existing_record.value = value
+    else:
+        # Yeni kayıt oluştur
+        record = PortfolioPerformance(
+            portfolio_id=portfolio_id,
+            value=value
+        )
+        db.session.add(record)
+
+# Portföy performans geçmişini al
+def get_portfolio_performance_history(portfolio_id):
+    # Son 30 günün performans verilerini al
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    
+    records = PortfolioPerformance.query.filter(
+        PortfolioPerformance.portfolio_id == portfolio_id,
+        PortfolioPerformance.date >= thirty_days_ago
+    ).order_by(PortfolioPerformance.date).all()
+    
+    history = []
+    for record in records:
+        history.append({
+            'date': record.date.strftime('%d.%m.%Y'),
+            'value': record.value
+        })
+    
+    return history
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True) 

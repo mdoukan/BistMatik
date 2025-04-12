@@ -411,6 +411,23 @@
             background: linear-gradient(135deg, #66bb6a, #4caf50);
             color: #ffffff;
         }
+        
+        /* Hemen Deneyin butonu için stil */
+        .try-now-btn {
+            font-size: 1.25rem !important;
+            font-weight: bold !important;
+            border-radius: 50px !important;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.4) !important;
+            background: linear-gradient(to right, #36D1DC, #5B86E5) !important;
+            border: none !important;
+            transition: transform 0.3s, box-shadow 0.3s !important;
+            padding: 15px 40px !important;
+        }
+        
+        .try-now-btn:hover {
+            transform: translateY(-5px) scale(1.05) !important;
+            box-shadow: 0 8px 25px rgba(0,123,255,0.6) !important;
+        }
     </style>
 </head>
 <body>
@@ -429,6 +446,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/goals">Hedefler</a>
                     </li>
+                    {% if user_name %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/portfolio">Portföyüm</a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="#features">Özellikler</a>
                     </li>
@@ -444,6 +466,7 @@
                             <i class="fas fa-user-circle me-1"></i> {{ user_name }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/portfolio"><i class="fas fa-chart-line me-2"></i>Portföyüm</a></li>
                             <li><a class="dropdown-item" href="/accounts_settings"><i class="fas fa-cog me-2"></i>Hesap Ayarları</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
@@ -486,7 +509,7 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="stat-card">
-                        <div class="stat-number">30+</div>
+                        <div class="stat-number">100+</div>
                         <div class="stat-label">BIST Şirketi</div>
                     </div>
                 </div>
@@ -503,6 +526,17 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- Hemen Deneyin Butonu -->
+    <section class="text-center py-5" style="background-color: #f0f8ff;">
+        <div class="container">
+            <h2 class="mb-4">Yapay Zeka Destekli Hisse Analizi</h2>
+            <p class="lead mb-4">Borsa İstanbul'daki hisseleri yapay zeka ile analiz edin, gerçek zamanlı tahminlere hemen ulaşın!</p>
+            <a href="/stock_analysis" class="btn btn-primary btn-lg try-now-btn">
+                <i class="fas fa-chart-line me-2"></i> HEMEN DENEYİN
+            </a>
         </div>
     </section>
 
@@ -635,6 +669,7 @@
             <p class="mb-4">Yapay zeka destekli hisse senedi analizleri ve portföy yönetimi ile yatırımlarınızı güçlendirin.</p>
             <div class="d-flex justify-content-center gap-3">
                 <a href="/register" class="cta-button">Hemen Üye Ol</a>
+                <a href="/stock_analysis" class="cta-button" style="background-color: #28a745; color: white;">Hemen Analiz Et</a>
                 <a href="#pricing" class="cta-button" style="background-color: transparent; color: white; border: 2px solid white;">Paketleri İncele</a>
             </div>
         </div>
@@ -652,6 +687,7 @@
                     <h3 class="footer-title">Hızlı Bağlantılar</h3>
                     <a href="/stock_analysis" class="footer-link">Hisse Analizi</a>
                     <a href="/goals" class="footer-link">Hedefler</a>
+                    <a href="/portfolio" class="footer-link">Portföyüm</a>
                     <a href="#features" class="footer-link">Özellikler</a>
                     <a href="#pricing" class="footer-link">Fiyatlandırma</a>
                     <a href="#about" class="footer-link">Hakkımızda</a>

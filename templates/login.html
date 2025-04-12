@@ -276,6 +276,40 @@
         document.getElementById('remainingTime').textContent = data.currentPackage.remainingTime;
 
         document.addEventListener('DOMContentLoaded', function() {
+            fetchSubscriptionData();
+
+            // İptal butonuna tıklama olayı
+            const cancelButton = document.getElementById('cancelSubscription');
+            if (cancelButton) {
+                cancelButton.addEventListener('click', function() {
+                    if (confirm('Paketinizi iptal etmek istediğinizden emin misiniz?')) {
+                        cancelSubscription();
+                    }
+                });
+            }
+        });
+
+        async function cancelSubscription() {
+            try {
+                const response = await fetch('/api/subscription/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Paketiniz başarıyla iptal edildi.');
+                    fetchSubscriptionData();
+                } else {
+                    alert('Paket iptal edilirken bir hata oluştu.');
+                }
+            } catch (error) {
+                console.error('Paket iptal edilirken hata oluştu:', error);
+            }
+        }
+
+        function fetchSubscriptionData() {
             fetch('/api/subscription')
                 .then(response => response.json())
                 .then(data => {
@@ -294,42 +328,6 @@
                     `).join('');
                 })
                 .catch(error => console.error('Error fetching subscription data:', error));
-        });
-
-        async function cancelSubscription() {
-            try {
-                const response = await fetch('/api/subscription/cancel', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    alert('Paketiniz başarıyla iptal edildi.');
-                    fetch('/api/subscription') // Bilgileri güncelle
-                        .then(response => response.json())
-                        .then(data => {
-                            document.getElementById('currentPackage').textContent = data.currentPackage.name;
-                            document.getElementById('remainingTime').textContent = data.currentPackage.remainingTime;
-                            
-                            const historyTable = document.getElementById('packageHistory');
-                            historyTable.innerHTML = data.history.map(pkg => `
-                                <tr>
-                                    <td>${pkg.name}</td>
-                                    <td>${pkg.startDate}</td>
-                                    <td>${pkg.endDate}</td>
-                                    <td>${pkg.status}</td>
-                                </tr>
-                            `).join('');
-                        })
-                        .catch(error => console.error('Error fetching subscription data:', error));
-                } else {
-                    alert('Paket iptal edilirken bir hata oluştu.');
-                }
-            } catch (error) {
-                console.error('Paket iptal edilirken hata oluştu:', error);
-            }
         }
     </script>
 
